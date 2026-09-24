@@ -1,0 +1,9 @@
+Package: com.example.wechatmod
+Name: WeChatMod
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: WeChat chat text display modifier
+Maintainer: example
+Author: example
+Section: Tweaks
+Depends: mobilesubstrate
