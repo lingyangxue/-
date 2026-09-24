@@ -6,10 +6,10 @@ static NSMutableDictionary *kModifiedTexts = nil;
 %ctor {
     kModifiedTexts = [NSMutableDictionary new];
     
-    // 注入成功提示（延迟5秒）
+    // 注入成功提示
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"注入成功" 
-                                                                       message:@"长按聊天里的文字气泡即可修改（仅自己可见）" 
+                                                                       message:@"【双击】聊天里的文字气泡即可修改（仅自己可见）" 
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         [alert addAction:[UIAlertAction actionWithTitle:@"知道了" style:UIAlertActionStyleDefault handler:nil]];
         [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
@@ -30,7 +30,6 @@ static NSMutableDictionary *kModifiedTexts = nil;
     NSString *plainText = attributedText.string;
     if (plainText.length > 0 && kModifiedTexts[plainText]) {
         NSString *newText = kModifiedTexts[plainText];
-        // 修正：使用 NSMutableAttributedString 替换文本，保留原有样式
         NSMutableAttributedString *newAttr = [attributedText mutableCopy];
         [newAttr replaceCharactersInRange:NSMakeRange(0, newAttr.length) withString:newText];
         %orig(newAttr);
@@ -39,53 +38,53 @@ static NSMutableDictionary *kModifiedTexts = nil;
     %orig(attributedText);
 }
 
-// 2. 给Label绑定长按手势
+// 2. 给Label绑定【双击】手势
 - (void)didMoveToWindow {
     %orig;
     if (self.window && self.gestureRecognizers.count == 0) {
         NSString *superClassName = NSStringFromClass([self.superview class]);
+        // 只给聊天界面的气泡加手势，防止给按钮文字加
         if ([superClassName containsString:@"Chat"] || 
             [superClassName containsString:@"Message"] || 
             [superClassName containsString:@"Cell"] || 
             [superClassName containsString:@"Table"]) {
             
-            UILongPressGestureRecognizer *lp = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPressEdit:)];
-            [self addGestureRecognizer:lp];
+            UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTapEdit:)];
+            tap.numberOfTapsRequired = 2; // 双击
+            [self addGestureRecognizer:tap];
         }
     }
 }
 
-// 3. 长按事件触发弹窗
-- (void)handleLongPressEdit:(UILongPressGestureRecognizer *)gesture {
-    if (gesture.state == UIGestureRecognizerStateBegan) {
-        NSString *originalText = self.text;
-        if (originalText.length == 0) return;
+// 3. 双击事件触发弹窗
+- (void)handleDoubleTapEdit:(UITapGestureRecognizer *)gesture {
+    NSString *originalText = self.text;
+    if (originalText.length == 0) return;
 
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"修改消息（仅自己可见）" 
-                                                                       message:@"输入你想看到的文字，不会发给对方" 
-                                                                preferredStyle:UIAlertControllerStyleAlert];
-        [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
-            textField.text = originalText;
-        }];
-        
-        [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-        [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-            NSString *newText = alert.textFields.firstObject.text;
-            if (newText.length > 0 && ![newText isEqualToString:originalText]) {
-                kModifiedTexts[originalText] = newText; // 记录修改
-                self.text = newText; // 立即刷新当前UI
-                [self.superview setNeedsLayout];
-                [self.superview layoutIfNeeded];
-            }
-        }]];
-        
-        [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
-    }
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"修改消息（仅自己可见）" 
+                                                                   message:@"输入你想看到的文字，不会发给对方" 
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.text = originalText;
+    }];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        NSString *newText = alert.textFields.firstObject.text;
+        if (newText.length > 0 && ![newText isEqualToString:originalText]) {
+            kModifiedTexts[originalText] = newText; // 记录修改
+            self.text = newText; // 立即刷新当前UI
+            [self.superview setNeedsLayout];
+            [self.superview layoutIfNeeded];
+        }
+    }]];
+    
+    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
 }
 
 %end
 
-// 额外补充：微信新版常用 YYLabel 自绘，加上这个 Hook 增加成功率
+// 同样给 YYLabel 加上双击
 %hook YYLabel
 
 - (void)setText:(NSString *)text {
@@ -105,6 +104,47 @@ static NSMutableDictionary *kModifiedTexts = nil;
         return;
     }
     %orig(attributedText);
+}
+
+- (void)didMoveToWindow {
+    %orig;
+    if (self.window && self.gestureRecognizers.count == 0) {
+        NSString *superClassName = NSStringFromClass([self.superview class]);
+        if ([superClassName containsString:@"Chat"] || 
+            [superClassName containsString:@"Message"] || 
+            [superClassName containsString:@"Cell"] || 
+            [superClassName containsString:@"Table"]) {
+            
+            UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleDoubleTapEdit:)];
+            tap.numberOfTapsRequired = 2;
+            [self addGestureRecognizer:tap];
+        }
+    }
+}
+
+- (void)handleDoubleTapEdit:(UITapGestureRecognizer *)gesture {
+    NSString *originalText = self.text;
+    if (originalText.length == 0) return;
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"修改消息（仅自己可见）" 
+                                                                   message:@"输入你想看到的文字，不会发给对方" 
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+        textField.text = originalText;
+    }];
+    
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+        NSString *newText = alert.textFields.firstObject.text;
+        if (newText.length > 0 && ![newText isEqualToString:originalText]) {
+            kModifiedTexts[originalText] = newText;
+            self.text = newText;
+            [self.superview setNeedsLayout];
+            [self.superview layoutIfNeeded];
+        }
+    }]];
+    
+    [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
 }
 
 %end
