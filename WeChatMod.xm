@@ -27,20 +27,22 @@ static NSMutableDictionary *kModifiedTexts = nil;
 }
 
 - (void)setAttributedText:(NSAttributedString *)attributedText {
-    if (attributedText.string.length > 0 && kModifiedTexts[attributedText.string]) {
-        NSString *newText = kModifiedTexts[attributedText.string];
-        NSAttributedString *newAttr = [[NSAttributedString alloc] initWithString:newText attributes:attributedText.attributes];
+    NSString *plainText = attributedText.string;
+    if (plainText.length > 0 && kModifiedTexts[plainText]) {
+        NSString *newText = kModifiedTexts[plainText];
+        // 修正：使用 NSMutableAttributedString 替换文本，保留原有样式
+        NSMutableAttributedString *newAttr = [attributedText mutableCopy];
+        [newAttr replaceCharactersInRange:NSMakeRange(0, newAttr.length) withString:newText];
         %orig(newAttr);
         return;
     }
     %orig(attributedText);
 }
 
-// 2. 给Label绑定长按手势（限制只在聊天界面的Cell上触发，避免全局冲突）
+// 2. 给Label绑定长按手势
 - (void)didMoveToWindow {
     %orig;
     if (self.window && self.gestureRecognizers.count == 0) {
-        // 简单判断父视图类名，避免把按钮、菜单等文字也加上长按
         NSString *superClassName = NSStringFromClass([self.superview class]);
         if ([superClassName containsString:@"Chat"] || 
             [superClassName containsString:@"Message"] || 
@@ -70,11 +72,8 @@ static NSMutableDictionary *kModifiedTexts = nil;
         [alert addAction:[UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             NSString *newText = alert.textFields.firstObject.text;
             if (newText.length > 0 && ![newText isEqualToString:originalText]) {
-                // 记录修改映射
-                kModifiedTexts[originalText] = newText;
-                
-                // 强制刷新当前显示的UI
-                self.text = newText; 
+                kModifiedTexts[originalText] = newText; // 记录修改
+                self.text = newText; // 立即刷新当前UI
                 [self.superview setNeedsLayout];
                 [self.superview layoutIfNeeded];
             }
@@ -82,6 +81,30 @@ static NSMutableDictionary *kModifiedTexts = nil;
         
         [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
     }
+}
+
+%end
+
+// 额外补充：微信新版常用 YYLabel 自绘，加上这个 Hook 增加成功率
+%hook YYLabel
+
+- (void)setText:(NSString *)text {
+    if (text.length > 0 && kModifiedTexts[text]) {
+        text = kModifiedTexts[text];
+    }
+    %orig(text);
+}
+
+- (void)setAttributedText:(NSAttributedString *)attributedText {
+    NSString *plainText = attributedText.string;
+    if (plainText.length > 0 && kModifiedTexts[plainText]) {
+        NSString *newText = kModifiedTexts[plainText];
+        NSMutableAttributedString *newAttr = [attributedText mutableCopy];
+        [newAttr replaceCharactersInRange:NSMakeRange(0, newAttr.length) withString:newText];
+        %orig(newAttr);
+        return;
+    }
+    %orig(attributedText);
 }
 
 %end
