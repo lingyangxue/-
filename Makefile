@@ -6,7 +6,7 @@ THEOS_PACKAGE_SCHEME = rootless
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = JokerFix
-JokerFix_FILES = JokerFix.mm
+JokerFix_FILES = JokerFix.xm
 JokerFix_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk

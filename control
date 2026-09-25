@@ -1,6 +1,6 @@
 Package: com.jokerfix
 Name: JokerFix
-Version: 0.1
+Version: 0.2
 Architecture: iphoneos-arm64
 Description: WeChat sent-image modifier (8.0.75 ready)
 Maintainer: local
