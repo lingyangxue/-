@@ -1,19 +1,15 @@
 //
-//  JokerFix.xm — 微信 8.0.75 发图修改插件
+//  JokerFix.xm — 微信 8.0.75 发图修改插件 v0.3
 //
 //  设计要点：不 hook 任何微信类名（8.0.75 改了类名也照常工作），
 //  只 hook UIKit 的稳定 C 函数 UIImageJPEGRepresentation /
 //  UIImagePNGRepresentation，并用 dladdr 过滤调用者必须是 WeChat 主程序。
 //
-//  功能（全部可用 plist 配置开关）：
-//   1. Enabled      —— 总开关
-//   2. ReplaceImage —— 替换图绝对路径（设置后，发出的图一律变成这张图）
-//   3. Scale        —— 等比缩放系数，0 或 1 = 不改尺寸
-//   4. Quality      —— JPEG 压缩质量 0~1，负数 = 用微信原参数
-//   5. StripMeta    —— 重绘去 EXIF/GPS 等元数据（默认开）
+//  v0.3：hook 安装从 %ctor 推迟到 UIApplicationDidFinishLaunching，
+//        避免在 dylib 加载早期 hook 导致部分越狱环境闪退。
 //
 //  配置文件：/var/mobile/Library/Preferences/com.jokerfix.plist
-//  修改后不需要重启微信，插件监听 com.jokerfix.prefschanged 通知即时生效。
+//  键：Enabled / ReplaceImage / Scale / Quality / StripMeta
 //
 
 #import <substrate.h>
@@ -109,16 +105,30 @@ static NSData *hook_PNG(UIImage *img) {
     return orig_PNG(applyModify(img));
 }
 
+// App 启动完成后再安装 hook（避免 dylib 早期 hook 导致闪退）
+static void installHooks(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        MSHookFunction((void *)UIImageJPEGRepresentation,
+                       (void *)hook_JPEG, (void **)&orig_JPEG);
+        MSHookFunction((void *)UIImagePNGRepresentation,
+                       (void *)hook_PNG, (void **)&orig_PNG);
+    });
+}
+
+static void onAppLaunched(CFNotificationCenterRef c, void *o, CFStringRef n, const void *d, CFDictionaryRef u) {
+    installHooks();
+}
+
 %ctor {
     @autoreleasepool {
         loadPrefs();
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
             NULL, prefsChanged, CFSTR(PREFS_DOMAIN ".prefschanged"), NULL,
             CFNotificationSuspensionBehaviorCoalesce);
-
-        MSHookFunction((void *)UIImageJPEGRepresentation,
-                       (void *)hook_JPEG, (void **)&orig_JPEG);
-        MSHookFunction((void *)UIImagePNGRepresentation,
-                       (void *)hook_PNG, (void **)&orig_PNG);
+        CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(),
+            NULL, onAppLaunched,
+            (CFStringRef)UIApplicationDidFinishLaunchingNotification, NULL,
+            CFNotificationSuspensionBehaviorDeliverImmediately);
     }
 }

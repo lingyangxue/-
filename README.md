@@ -37,3 +37,12 @@
 - 只对 JPEG/PNG 编码路径生效。若某个发送入口（如原图 HEIC 直传）没走到
   这两个函数，改动不生效——用 Frida hook UIImageJPEGRepresentation
   打回溯栈确认编码点后，把 hook 点挪过去即可（改两行）。
+
+## 如果微信闪退
+1. 先卸载本插件自救（在 Filza 删除）：
+     /var/jb/Library/MobileSubstrate/DynamicLibraries/JokerFix.dylib
+     /var/jb/Library/MobileSubstrate/DynamicLibraries/JokerFix.plist
+   然后 respring（或重启微信）。
+2. 抓取崩溃日志反馈：设置 → 隐私与安全性 → 分析与改进 → 分析数据 →
+   最新的 WeChat-*.ips，把 "Termination Reason" 和崩溃线程前 10 行发出来。
+3. 告知越狱类型（Dopamine / palera1n / 其他）和 iOS 版本。
