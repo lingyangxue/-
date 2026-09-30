@@ -8,6 +8,45 @@
 @implementation ClownPrefs
 
 
++ (UIViewController *)topController {
+
+    UIWindow *window = nil;
+
+    for (UIScene *scene in
+         [UIApplication sharedApplication].connectedScenes) {
+
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+
+            UIWindowScene *ws = (UIWindowScene *)scene;
+
+            for (UIWindow *w in ws.windows) {
+
+                if (w.isKeyWindow) {
+                    window = w;
+                    break;
+                }
+            }
+        }
+
+        if (window) {
+            break;
+        }
+    }
+
+
+    UIViewController *root = window.rootViewController;
+
+
+    while (root.presentedViewController) {
+        root = root.presentedViewController;
+    }
+
+
+    return root;
+}
+
+
+
 + (void)showMenu {
 
 
@@ -44,67 +83,16 @@
     [alert addAction:disable];
 
 
-    UIViewController *root = nil;
-
-
-    if (@available(iOS 13.0, *)) {
-
-
-        for (UIScene *scene in
-             [UIApplication sharedApplication].connectedScenes) {
-
-
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-
-
-                UIWindowScene *windowScene =
-                (UIWindowScene *)scene;
-
-
-                for (UIWindow *window in windowScene.windows) {
-
-
-                    if (window.isKeyWindow) {
-
-
-                        root =
-                        window.rootViewController;
-
-
-                        break;
-
-                    }
-                }
-            }
-
-
-            if (root) {
-                break;
-            }
-        }
-
-
-    } else {
-
-
-        root =
-        [UIApplication sharedApplication]
-        .keyWindow.rootViewController;
-
-
-    }
-
+    UIViewController *root = [self topController];
 
 
     if (root) {
-
 
         [root presentViewController:alert
                            animated:YES
                          completion:nil];
 
     }
-
 
 }
 
