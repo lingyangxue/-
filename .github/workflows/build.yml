@@ -1,49 +1,32 @@
-name: Build WCClown dylib
+ARCHS = arm64e
+TARGET = iphone:clang:latest:17.0
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+DEBUG = 0
 
-jobs:
-  build:
+include $(THEOS)/makefiles/common.mk
 
-    runs-on: macos-latest
+LIBRARY_NAME = WCClown
 
-    steps:
+WCClown_FILES = \
+Tweak.xm \
+ClownCore.mm \
+ClownPrefs.mm
 
-    - name: Checkout
-      uses: actions/checkout@v4
+WCClown_CFLAGS = \
+-fobjc-arc \
+-Wno-deprecated-declarations \
+-Wno-unused-variable \
+-Wno-unused-function
 
+WCClown_FRAMEWORKS = \
+UIKit \
+Foundation \
+CoreGraphics
 
-    - name: Install Theos and ldid
-      run: |
-        brew update
-        brew install ldid libplist
+WCClown_LDFLAGS = \
+-Wl,-not_for_dyld_shared_cache
 
-        git clone --recursive https://github.com/theos/theos.git $HOME/theos
-        echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+WCClown_CODESIGN_FLAGS =
+ADDITIONAL_OBJCFLAGS = -fno-stack-check
 
-
-    - name: Build dylib
-      run: |
-        export THEOS=$HOME/theos
-
-        make clean
-
-        make DEBUG=0
-
-
-    - name: Find dylib
-      run: |
-        mkdir -p output
-
-        find . -name "WCClown.dylib" -exec cp {} output/WCClown.dylib \;
-
-
-    - name: Upload dylib
-      uses: actions/upload-artifact@v4
-      with:
-        name: WCClown-dylib
-        path: output/WCClown.dylib
+include $(THEOS_MAKE_PATH)/library.mk
