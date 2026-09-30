@@ -22,8 +22,7 @@ Foundation \
 CoreGraphics
 
 WCClown_LDFLAGS = \
--undefined dynamic_lookup \
 -Wl,-no_warn_duplicate_libraries \
--Wl,-no_warn_inits
+-Wl,-not_for_dyld_shared_cache
 
 include $(THEOS_MAKE_PATH)/library.mk
