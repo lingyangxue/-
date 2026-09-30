@@ -1,6 +1,9 @@
 ARCHS = arm64e
 TARGET = iphone:clang:latest:17.0
 
+THEOS_PACKAGE_SCHEME = rootless
+DEBUG = 0
+
 include $(THEOS)/makefiles/common.mk
 
 LIBRARY_NAME = WCClown
@@ -22,7 +25,8 @@ Foundation \
 CoreGraphics
 
 WCClown_LDFLAGS = \
--Wl,-no_warn_duplicate_libraries \
 -Wl,-not_for_dyld_shared_cache
+
+WCClown_CODESIGN_FLAGS = -
 
 include $(THEOS_MAKE_PATH)/library.mk
