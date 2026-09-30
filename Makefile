@@ -1,12 +1,12 @@
-TARGET := iphone:clang:latest:15.0
 ARCHS = arm64 arm64e
-INSTALL_TARGET_PROCESSES = WeChat
-THEOS_PACKAGE_SCHEME = rootless
+TARGET = iphone:clang:latest:14.0
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = JokerFix
-JokerFix_FILES = JokerFix.xm
-JokerFix_CFLAGS = -fobjc-arc
+TWEAK_NAME = WCClown
+
+WCClown_FILES = Tweak.xm ClownCore.mm
+WCClown_CFLAGS = -fobjc-arc
+WCClown_FRAMEWORKS = UIKit Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
