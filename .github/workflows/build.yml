@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+
     runs-on: macos-latest
 
     steps:
@@ -15,18 +16,21 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+
     - name: Install Theos
       run: |
         git clone --recursive https://github.com/theos/theos.git $HOME/theos
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
+
     - name: Build dylib
       run: |
         export THEOS=$HOME/theos
         make clean
-        make
+        make DEBUG=0
         mkdir -p output
-        cp .theos/obj/arm64e/WCClown.dylib output/WCClown.dylib
+        cp .theos/obj/debug/WCClown.dylib output/WCClown.dylib
+
 
     - name: Upload dylib
       uses: actions/upload-artifact@v4
