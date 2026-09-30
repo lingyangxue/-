@@ -6,6 +6,176 @@
 #import "ClownCore.h"
 
 @implementation ClownCore
+#pragma mark - Message Process
+
+
++ (void)processMessage:(id)message {
+
+
+    if (![self enabled]) {
+        return;
+    }
+
+
+    if (!message) {
+        return;
+    }
+
+
+    /*
+     对应：
+     WCRefineShouldApplyClown
+    */
+
+
+    // 文字处理
+
+    if ([self textModifyEnabled]) {
+
+
+        @try {
+
+
+            if ([message respondsToSelector:@selector(setM_nsContent:)]) {
+
+
+                NSString *oldText =
+                [message performSelector:@selector(m_nsContent)];
+
+
+                NSString *newText =
+                [self modifyText:oldText];
+
+
+                if (newText &&
+                    ![newText isEqualToString:oldText]) {
+
+
+                    [message performSelector:
+                     @selector(setM_nsContent:)
+                     withObject:newText];
+
+                }
+
+            }
+
+
+        } @catch(NSException *e) {
+
+
+            NSLog(@"[WCClown] text error %@", e);
+
+        }
+
+    }
+
+
+
+
+
+    /*
+     图片处理
+
+     对应：
+     WCRefineSetClownImageOverride
+     */
+
+
+    if ([self imageModifyEnabled]) {
+
+
+        @try {
+
+
+            if ([message respondsToSelector:@selector(m_dtImg:)]) {
+
+
+                NSData *img =
+                [message performSelector:@selector(m_dtImg)];
+
+
+                NSData *newImg =
+                [self modifyImage:img];
+
+
+                if (newImg) {
+
+
+                    [message performSelector:
+                     @selector(setM_dtImg:)
+                     withObject:newImg];
+
+                }
+
+            }
+
+
+        } @catch(NSException *e) {
+
+
+            NSLog(@"[WCClown] image error %@",e);
+
+        }
+
+    }
+
+
+
+
+
+    /*
+     时间处理
+
+     对应：
+     WCRefineSetClownTimeOverride
+     */
+
+
+    if ([self timeModifyEnabled]) {
+
+
+        @try {
+
+
+            if ([message respondsToSelector:@selector(m_nsCreateTime:)]) {
+
+
+                NSString *time =
+                [message performSelector:
+                 @selector(m_nsCreateTime)];
+
+
+                NSString *newTime =
+                [self modifyTime:time];
+
+
+                if (newTime) {
+
+
+                    [message performSelector:
+                     @selector(setM_nsCreateTime:)
+                     withObject:newTime];
+
+                }
+
+            }
+
+
+        } @catch(NSException *e) {
+
+
+            NSLog(@"[WCClown] time error %@",e);
+
+        }
+
+    }
+
+
+}
+
+
+
+@end
 #pragma mark - Text Modify
 
 + (NSString *)modifyText:(NSString *)text {
