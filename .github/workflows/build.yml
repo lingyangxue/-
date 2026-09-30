@@ -19,13 +19,11 @@ jobs:
 
     - name: Install Theos and ldid
       run: |
+        brew update
+        brew install ldid libplist
+
         git clone --recursive https://github.com/theos/theos.git $HOME/theos
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-
-        git clone https://github.com/ProcursusTeam/ldid.git
-        cd ldid
-        make
-        sudo cp ldid /usr/local/bin/ldid
 
 
     - name: Build dylib
@@ -40,6 +38,7 @@ jobs:
     - name: Find dylib
       run: |
         mkdir -p output
+
         find . -name "WCClown.dylib" -exec cp {} output/WCClown.dylib \;
 
 
