@@ -1,18 +1,23 @@
 #import <UIKit/UIKit.h>
 #import "ClownCore.h"
 
+
 %hook CMessageMgr
 
 - (void)AddMsg:(id)msg MsgWrap:(id)wrap {
-    
+
     %orig;
 
     if ([ClownCore enabled]) {
+
         [ClownCore processMessage:wrap];
+
     }
+
 }
 
 %end
+
 
 
 %hook CMessageWrap
@@ -21,9 +26,13 @@
 
     NSString *content = %orig;
 
+
     if ([ClownCore textModifyEnabled]) {
+
         content = [ClownCore modifyText:content];
+
     }
+
 
     return content;
 }
@@ -31,22 +40,11 @@
 %end
 
 
-%hook MMChatHistoryViewController
 
-- (void)viewDidLoad {
+__attribute__((constructor))
+static void WCClownInit()
+{
 
-    %orig;
-
-    if ([ClownCore enabled]) {
-        NSLog(@"WCClown Loaded");
-    }
-}
-
-%end
-
-
-%ctor {
-
-    NSLog(@"[WCClown] Inject Success");
+    NSLog(@"[WCClown] dylib injected");
 
 }
