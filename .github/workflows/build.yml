@@ -1,4 +1,4 @@
-name: Build WCClown
+name: Build WCClown dylib
 
 on:
   workflow_dispatch:
@@ -20,13 +20,16 @@ jobs:
         git clone --recursive https://github.com/theos/theos.git $HOME/theos
         echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
-    - name: Build
+    - name: Build dylib
       run: |
         export THEOS=$HOME/theos
-        make package FINALPACKAGE=1
+        make clean
+        make
+        mkdir -p output
+        cp .theos/obj/arm64e/WCClown.dylib output/WCClown.dylib
 
-    - name: Upload Deb
+    - name: Upload dylib
       uses: actions/upload-artifact@v4
       with:
-        name: WCClown-deb
-        path: packages/*.deb
+        name: WCClown-dylib
+        path: output/WCClown.dylib
