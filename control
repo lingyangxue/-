@@ -1,8 +1,8 @@
 Package: com.wcclown.tweak
 Name: WCClown
 Version: 1.0.0
-Architecture: iphoneos-arm
-Description: WCRefine Clown Feature Standalone
+Architecture: iphoneos-arm64
+Description: Standalone Clown Feature
 Maintainer: WCClown
 Section: Tweaks
 Depends: mobilesubstrate
