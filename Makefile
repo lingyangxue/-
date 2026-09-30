@@ -7,10 +7,20 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = WCClown
 
-WCClown_FILES = Tweak.xm ClownCore.mm
-WCClown_CFLAGS = -fobjc-arc
+WCClown_FILES = \
+Tweak.xm \
+ClownCore.mm \
+ClownPrefs.mm
 
-WCClown_FRAMEWORKS = UIKit Foundation CoreGraphics
+WCClown_CFLAGS = \
+-fobjc-arc \
+-Wno-unused-variable \
+-Wno-unused-function
+
+WCClown_FRAMEWORKS = \
+UIKit \
+Foundation \
+CoreGraphics
 
 WCClown_PRIVATE_FRAMEWORKS =
 
