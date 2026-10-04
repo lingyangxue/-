@@ -1,9 +1,10 @@
-TARGET := iphone:clang:latest:14.0
-ARCHS  := arm64
-
-TWEAK_NAME = WCRClown
-WCRClown_FILES = WCRClownRuntime.m WCRClownSettingsController.m Tweak.xm
-WCRClown_CFLAGS = -fobjc-arc
-
+ARCHS = arm64 arm64e
+TARGET = iphone:clang:latest:14.0
 include $(THEOS)/makefiles/common.mk
+
+TWEAK_NAME = WCClown
+WCClown_FILES = Tweak.xm WCRClownRuntime.m WCRClownSettingsController.m
+WCClown_CFLAGS = -fobjc-arc
+WCClown_FRAMEWORKS = UIKit Foundation
+
 include $(THEOS_MAKE_PATH)/tweak.mk
