@@ -1,76 +1,30 @@
-name: Build WCClown dylib
+name: Build Tweak
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-14
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Setup Theos
+        run: |
+          export THEOS=$HOME/theos
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        shell: bash
         run: |
-          brew update
-          brew install ldid
+          brew install ldid xz dpkg fakeroot
+          brew unlink openssl@1.1 || true
+          brew link --overwrite openssl@3 || true
 
-          echo "Checking ldid..."
-          which ldid
-          ldid -h || true
-
-      - name: Install Theos
-        shell: bash
-        run: |
-          export THEOS="$HOME/theos"
-
-          if [ ! -d "$THEOS" ]; then
-            git clone --recursive https://github.com/theos/theos.git "$THEOS"
-          fi
-
-          export PATH="$THEOS/bin:$PATH"
-
-          echo "THEOS=$THEOS"
-          echo "PATH=$PATH"
-
-          "$THEOS/bin/update-theos" || true
-
-      - name: Build dylib
-        shell: bash
-        run: |
-          export THEOS="$HOME/theos"
-          export PATH="$THEOS/bin:$PATH"
-
-          echo "THEOS=$THEOS"
-          echo "ldid=$(command -v ldid)"
-          ldid -h || true
-
-          make clean || true
-
-          make \
-            FINALPACKAGE=1 \
-            TARGET_CODESIGN=ldid \
-            TARGET_CODESIGN_FLAGS=-S
-
-      - name: Find dylib
-        shell: bash
-        run: |
-          echo "Searching for dylib..."
-
-          find . -type f -name "*.dylib" -print
-
-      - name: Upload dylib
-        uses: actions/upload-artifact@v4
-        with:
-          name: WCClown-dylib
-          path: |
-            .theos/obj/**/*.dylib
-            .theos/obj/**/*.dylib.*
-          if-no-files-found: error
+      - name: Build package
+        run: make package
