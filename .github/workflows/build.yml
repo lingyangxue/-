@@ -22,15 +22,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew update
-          brew install ldid xz dpkg fakeroot
-          # 强制覆盖冲突的 openssl
-          brew link --overwrite --force openssl@3 || true
+          # 关键修改：只安装 ldid 和 xz，删掉 dpkg 和 fakeroot！
+          # 这样才能避开 macOS Tier 3 的报错。
+          brew install ldid xz
 
       - name: Build package
         run: |
           make package
-          
+
       - name: Upload deb file
         uses: actions/upload-artifact@v4
         with:
