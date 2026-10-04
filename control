@@ -1,9 +1,9 @@
 Package: com.yourname.wcclown
-Name: ls
+Name: WCClown
 Version: 0.0.1
 Architecture: iphoneos-arm
 Description: 小丑功能自用娱乐
 Maintainer: yourname
-Author: yourname
+Author: ls
 Section: Tweaks
 Depends: mobilesubstrate
