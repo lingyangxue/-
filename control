@@ -1,0 +1,9 @@
+Package: com.zaka.wcrclown
+Name: WCRClown
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: 小丑功能 覆盖引擎（本地消息显示篡改，独立实现）
+Maintainer: yourname
+Author: yourname
+Section: Tweaks
+Depends: mobilesubstrate
