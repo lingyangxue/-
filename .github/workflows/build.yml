@@ -2,7 +2,7 @@ name: Build Tweak
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -22,9 +22,17 @@ jobs:
 
       - name: Install dependencies
         run: |
+          brew update
           brew install ldid xz dpkg fakeroot
-          brew unlink openssl@1.1 || true
-          brew link --overwrite openssl@3 || true
+          # 强制覆盖冲突的 openssl
+          brew link --overwrite --force openssl@3 || true
 
       - name: Build package
-        run: make package
+        run: |
+          make package
+          
+      - name: Upload deb file
+        uses: actions/upload-artifact@v4
+        with:
+          name: WCClown-Deb
+          path: ./packages/*.deb
