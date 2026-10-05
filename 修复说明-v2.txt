@@ -1,0 +1,82 @@
+小丑功能模块 v2 —— 编译失败修复说明
+========================================
+
+一、你那次构建为什么挂
+----------------------
+报错全集中在 Tweak.xm,共 10 个 error,日志里的关键行是:
+
+    Tweak.xm:37:59: note: forward declaration of class here
+    @class WCRMessageCell; @class WCRMessageViewModel; @class WCRBaseMsgContentViewController;
+
+根因:Logos 的 %hook 对没有声明的类只会生成一个 @class 前向声明,
+编译器此时并不知道 WCRMessageCell 到底是不是 NSObject 的子类、有哪些方法。
+而旧版 Tweak.xm 里直接写了:
+
+    [self valueForKey:@"messageWrap"]        // ← error:no known instance method
+    self.tableView                           // ← error:property not found
+    self.window.rootViewController           // ← error:property not found
+    [self valueForKey:@"m_nsRealChatUsr"]    // ← error
+
+在 ARC 下这些不是警告,是全硬 error,所以一次报出 10 个。
+
+顺带一个隐藏雷:WCRClownRuntime.m 里原本写的
+    return [WCRCall(obj, sel) boolValue];
+WCRCall 的静态返回类型是 id,id 隐式转 BOOL 在 ARC 下同样是 error
+(这次日志里没报,是因为编译器在 Tweak.xm 就先炸了,轮不到它)。
+
+
+二、这一版改了什么
+------------------
+1. Tweak.xm:不再声明、也不 import 任何微信私有类。
+   所有对 hook 对象的访问,一律先转成 id 再动态派发:
+
+        id cell = (id)self;
+        id message = WCRGetFirst(cell, @[@"messageWrap", @"m_message", @"viewModel"]);
+
+   对 id 发未知消息在 ARC 下只是警告,不再是 error。
+   附带好处:微信版本换了字段名/方法名,代码也不会重新报错。
+
+2. 弹窗不再依赖 cell.window,改成从 UIApplication 的 keyWindow 上找顶层控制器,
+   并在 iPad 上补了 popover 锚点(不补会崩)。
+
+3. 菜单项回调补上了 canPerformAction:withSender: 放行,
+   否则「小丑」这一项长按菜单里根本不会出现。
+
+4. WCRClownRuntime.m:WCRBool 改用 IMP 强转返回,消掉 id→BOOL 的 ARC error。
+
+5. Makefile:补上 WCRClown_FRAMEWORKS = UIKit Foundation
+   (tweak 里用了 UIAlertController / UIMenuController,不链接会在链接期报未定义符号),
+   CFLAGS 里加了 -fobjc-arc -Wno-deprecated-declarations。
+
+
+三、拿过去怎么用
+----------------
+1. 把 WCRClown 目录整个覆盖进你的仓库(你要继续叫 WCCLown 也行,
+   但 Makefile 里 TWEAK_NAME / _FILES / _CFLAGS / _FRAMEWORKS 的前缀必须同名)。
+
+2. 填真实类名 —— Tweak.xm 里三处 %hook 是占位符,按你的目标微信版本替换:
+
+    %hook WCRMessageCell                   → 承载气泡的 Cell 类
+    %hook WCRMessageViewModel              → 组装展示内容的 ViewModel 类
+    %hook WCRBaseMsgContentViewController  → 聊天会话控制器类
+
+   类名怎么找:把微信主二进制丢进 IDA/Hopper 搜 "MsgContentViewController"、
+   "MessageCell"、"MessageViewModel" 之类的关键词,或者直接用 class-dump 导一遍。
+
+3. 编译:
+   需要 theos 环境(clang + iPhoneOS SDK)
+   在这份 Makefile 同级目录下:
+       make package            # 出 .deb
+       make package DEBUG=0    # 出 release
+   CI 上跑的话,确保 theos 的 SDK 装好了;TARGET 里 14.0 是最低部署版本,
+   想兼容更老的微信改小即可(注意 UITableViewStyleInsetGrouped 需要 iOS 13+)。
+
+4. 装到设备后手动重启一次微信。
+
+
+四、说明
+--------
+- 引擎(WCRClownRuntime / WCRClownSettingsController)与微信版本无关,不用动。
+- 存储是一份全局内存字典,key = 会话 + 发送方 + 消息类型 + 创建时间,
+  同一条消息反复进视图也能命中同一次覆盖;重启微信即失效(「退出保持」只保证切会话不丢)。
+- 所有修改只发生在你本机的渲染层,不落盘、不发包、对方永远看不到原样。

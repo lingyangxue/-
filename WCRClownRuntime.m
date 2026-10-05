@@ -47,7 +47,15 @@ static void WCRCallVoid(id obj, NSString *sel, id arg) {
 }
 
 static BOOL WCRBool(id obj, NSString *sel) {
-    return [WCRCall(obj, sel) boolValue];
+    // 注意:不能写成 [WCRCall(obj, sel) boolValue]。
+    // 对未知 selector,WCRCall 的静态返回类型是 id,id 隐式转 BOOL 在 ARC 下是 error。
+    // 走 IMP 强转,类型明确,也就没有这个坑。
+    SEL s = NSSelectorFromString(sel);
+    if (obj && [obj respondsToSelector:s]) {
+        IMP imp = [obj methodForSelector:s];
+        if (imp) return ((BOOL (*)(id, SEL))imp)(obj, s);
+    }
+    return NO;
 }
 
 @implementation WCRClownRuntime
